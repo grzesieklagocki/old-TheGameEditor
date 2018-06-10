@@ -1,0 +1,114 @@
+﻿<UserControl x:Class="TheGameEditor.View.MenuView"
+			 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+			 xmlns:lng="clr-namespace:TheGameEditor.Localization"
+             xmlns:my="clr-namespace:TheGameEditor.UserControls"
+			 xmlns:local="clr-namespace:TheGameEditor.View"
+			 mc:Ignorable="d" 
+			 d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <my:MenuItemIcon x:Key="IconNew" Icon="{StaticResource appbar_new}" />
+        <my:MenuItemIcon x:Key="IconOpen" Icon="{StaticResource appbar_folder_open}" />
+        <my:MenuItemIcon x:Key="IconImport" Icon="{StaticResource appbar_arrow_right}" />
+        <my:MenuItemIcon x:Key="IconSave" Icon="{StaticResource appbar_save}" />
+        <my:MenuItemIcon x:Key="IconExit" Icon="{StaticResource appbar_close}" />
+    </UserControl.Resources>
+    <Menu 
+		DockPanel.Dock="Top"
+		DataContext="{Binding Source={StaticResource Locator}, Path=Main}">
+		<!-- PLIK -->
+		<MenuItem 
+            Header="{x:Static lng:Menu.File}">
+
+            <MenuItem 
+                Header="{x:Static lng:Menu.New}" 
+                Command="{Binding NewFileCommand}"
+                InputGestureText="CTRL + N"
+                Icon="{StaticResource IconNew}">
+            </MenuItem>
+			<Separator />
+			<MenuItem 
+				Header="{x:Static lng:Menu.Open}" 
+                Icon="{StaticResource IconOpen}"
+				Command="{Binding OpenFileCommand}"
+				InputGestureText="CTRL + O" />
+			<MenuItem 
+                Header="{x:Static lng:Menu.Import}" 
+                Icon="{StaticResource IconImport}"
+                Command="{Binding ImportCommand}" 
+                InputGestureText="CTRL + I" />
+			<Separator />
+			<MenuItem 
+                Header="{x:Static lng:Menu.Save}"
+                Icon="{StaticResource IconSave}"
+                Command="{Binding SaveFileCommand}"
+                InputGestureText="CTRL + S" />
+			<MenuItem
+                Header="{x:Static lng:Menu.SaveAs}" 
+                Command="{Binding SaveAsFileCommand}"
+                InputGestureText="F12" />
+			<Separator />
+			<MenuItem 
+                Header="{x:Static lng:Menu.Exit}" 
+                Icon="{StaticResource IconExit}"
+                Command="{Binding ExitCommand}" 
+                InputGestureText="ALT + F4" />
+		</MenuItem>
+		<!-- EDYCJA -->
+		<MenuItem
+            Header="{x:Static lng:Menu.Edit}">
+
+			<MenuItem 
+                Header="{x:Static lng:Menu.Undo}"
+                Command="{Binding UndoCommand}" 
+                InputGestureText="CTRL + Z" />
+			<MenuItem 
+                Header="{x:Static lng:Menu.Redo}"
+                Command="{Binding RedoCommand}" 
+                InputGestureText="CTRL + Y" />
+			<Separator />
+			<MenuItem
+                Header="{x:Static lng:Menu.Cut}"
+                Command="{Binding CutCommand}" 
+                InputGestureText="CTRL + X" />
+			<MenuItem
+                Header="{x:Static lng:Menu.Copy}" 
+                Command="{Binding CopyCommand}" 
+                InputGestureText="CTRL + C" />
+			<MenuItem
+                Header="{x:Static lng:Menu.Paste}"
+                Command="{Binding PasteCommand}" 
+                InputGestureText="CTRL + V" />
+			<Separator />
+			<MenuItem
+                Header="{x:Static lng:Menu.Delete}"
+                Command="{Binding DeleteCommand}" 
+                InputGestureText="DEL" />
+		</MenuItem>
+		<!-- WIDOK -->
+		<MenuItem 
+            Header="{x:Static lng:Menu.View}">
+
+			<MenuItem
+                Header="1" />
+			<MenuItem
+                Header="2" />
+		</MenuItem>
+		<!-- NARZĘDZIA -->
+		<MenuItem 
+            Header="{x:Static lng:Menu.Tools}">
+			<MenuItem
+                Header="{x:Static lng:Menu.CheckForUpdates}"
+                Command="{Binding CheckForUpdatesCommand}" />
+			<MenuItem
+                Header="{x:Static lng:Menu.Settings}" 
+                Command="{Binding SettingsCommand}" />
+			<Separator />
+			<MenuItem
+                Header="{x:Static lng:Menu.About}"
+                Command="{Binding AboutCommand}" />
+		</MenuItem>
+	</Menu>
+</UserControl>
