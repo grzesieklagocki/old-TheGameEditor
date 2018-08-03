@@ -1,4 +1,5 @@
-﻿using GalaSoft.MvvmLight.CommandWpf;
+﻿using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight.CommandWpf;
 using Microsoft.CSharp;
 using PropertyChanged;
 using System;
@@ -6,107 +7,103 @@ using System.CodeDom.Compiler;
 
 namespace TheGameEditor.ViewModel
 {
-    public partial class ItemsViewModelBase<TItem>
+    [AddINotifyPropertyChangedInterface]
+    public class UserProperty : ViewModelBase
     {
-        [AddINotifyPropertyChangedInterface]
-        public class UserProperty
+        public string CompilationErrorMessage { get; set; }
+        public string SourceCode { get; set; } = defaultSourceCode;
+
+        public Func<float> Calculate { get; set; }
+
+        public RelayCommand CompileCommand
         {
-            public string CompilationErrorMessage { get; set; }
-            public string SourceCode { get; set; } = defaultSourceCode;
-
-            public Func<float> Calculate { get; set; }
-
-            public RelayCommand CompileCommand
+            get
             {
-                get
-                {
-                    return compileCommand ?? (compileCommand = new RelayCommand(CompileAction));
-                }
+                return compileCommand ?? (compileCommand = new RelayCommand(CompileAction));
             }
+        }
 
-            public RelayCommand ResetCommand
+        public RelayCommand ResetCommand
+        {
+            get
             {
-                get
-                {
-                    return resetCommand ?? (resetCommand = new RelayCommand(ResetAction));
-                }
+                return resetCommand ?? (resetCommand = new RelayCommand(ResetAction));
             }
+        }
 
 
-            public bool HasErrors { get { return string.IsNullOrWhiteSpace(CompilationErrorMessage); } }
+        public bool HasErrors { get { return string.IsNullOrWhiteSpace(CompilationErrorMessage); } }
 
 
-            private RelayCommand compileCommand;
-            private RelayCommand resetCommand;
+        private RelayCommand compileCommand;
+        private RelayCommand resetCommand;
 
-            private static readonly CSharpCodeProvider codeProvider;
-            private static readonly CompilerParameters compilerParameters;
-            private static readonly Func<float> defaultCalculateAction;
-            private static readonly string defaultSourceCode;
+        private static readonly CSharpCodeProvider codeProvider;
+        private static readonly CompilerParameters compilerParameters;
+        private static readonly Func<float> defaultCalculateAction;
+        private static readonly string defaultSourceCode;
 
 
-            #region Static Constructor
+        #region Static Constructor
 
-            static UserProperty()
+        static UserProperty()
+        {
+            codeProvider = new CSharpCodeProvider();
+
+            compilerParameters = new CompilerParameters
             {
-                codeProvider = new CSharpCodeProvider();
+                IncludeDebugInformation = false,
+                GenerateExecutable = false,
+                GenerateInMemory = true
+            };
 
-                compilerParameters = new CompilerParameters
-                {
-                    IncludeDebugInformation = false,
-                    GenerateExecutable = false,
-                    GenerateInMemory = true                    
-                };
+            defaultCalculateAction = new Func<float>(() => 0f);
 
-                defaultCalculateAction = new Func<float>(() => 0f);
-
-                defaultSourceCode = @"
+            defaultSourceCode = @"
                     using System;
             
                     namespace UserProperties
                     {                
                         public class UserProperty
                         {                
-                            public static double Calculate()
+                            public static float Calculate()
                             {
                                 return 0f;
                             }
                         }
                     }
                 ";
-            }
+        }
 
-            #endregion
+        #endregion
 
 
-            private void CompileAction()
+        private void CompileAction()
+        {
+            var results = codeProvider.CompileAssemblyFromSource(compilerParameters, SourceCode);
+
+            CompilationErrorMessage = string.Empty;
+
+            if (results.Errors.HasErrors)
             {
-                var results = codeProvider.CompileAssemblyFromSource(compilerParameters, SourceCode);
-
-                CompilationErrorMessage = string.Empty;
-
-                if (results.Errors.HasErrors)
+                foreach (var error in results.Errors)
                 {
-                    foreach (var error in results.Errors)
-                    {
-                        CompilationErrorMessage += error;
-                    }
-
-                    Calculate = defaultCalculateAction;
+                    CompilationErrorMessage += error;
                 }
-                else
-                {
-                    var action = results.CompiledAssembly.GetType("UserProperties.UserProperty").GetMethod("Calculate");
-                    Calculate = (Func<float>)Delegate.CreateDelegate(typeof(Func<float>), action);
-                }
-            }
 
-            private void ResetAction()
-            {
-                SourceCode = defaultSourceCode;
                 Calculate = defaultCalculateAction;
             }
+            else
+            {
+                var action = results.CompiledAssembly.GetType("UserProperties.UserProperty").GetMethod("Calculate");
+                Calculate = (Func<float>)Delegate.CreateDelegate(typeof(Func<float>), action);
+            }
+        }
+
+        private void ResetAction()
+        {
+            SourceCode = defaultSourceCode;
+            Calculate = defaultCalculateAction;
         }
     }
-
 }

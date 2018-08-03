@@ -8,6 +8,8 @@
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:lng="clr-namespace:TheGameEditor.Localization"
         xmlns:view="clr-namespace:TheGameEditor.View"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:cmd="clr-namespace:GalaSoft.MvvmLight.Command;assembly=GalaSoft.MvvmLight.Platform"
         
         mc:Ignorable="d"
         Title="MainWindow" 
@@ -46,14 +48,74 @@
             DockPanel.Dock="Bottom"
             Command="{Binding AddItemCommand}"
             DataContext="{Binding Characters, Source={StaticResource Locator}}" />
+        <StackPanel
+            Orientation="Vertical">
+            <TextBox
+                Text="{Binding Dictionary[0], UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                Width="200" />
+            <TextBox
+                Text="{Binding Dictionary[0], UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                Width="200" />
+            <Button
+                Command="{Binding ChangeCommand}"
+                />
+            <TextBlock
+                Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                Width="200" />
+            <TextBox
+                Text="{Binding Property.SourceCode, UpdateSourceTrigger=PropertyChanged}"
+                TextWrapping="Wrap"
+                AcceptsReturn="True"
+                VerticalScrollBarVisibility="Visible" />
+            <Button
+                Content="Compile!"
+                Command="{Binding Property.CompileCommand}" />
+            <Button
+                Content="Reset"
+                Command="{Binding Property.ResetCommand}" />
+            <TextBlock
+                Foreground="Red"
+                Text="{Binding Property.CompilationErrorMessage}"
+                TextWrapping="Wrap" />
+        </StackPanel>
         <DataGrid
             DataContext="{Binding Characters, Source={StaticResource Locator}}"
-            AutoGenerateColumns="False"
+            CanUserAddRows="True"
+            CanUserDeleteRows="True"
+            AutoGenerateColumns="True"
             ItemsSource="{Binding Items}"
             SelectedItem="{Binding SelectedItem}" >
-            <DataGrid.Columns>
-                <DataGridTextColumn Binding="{Binding }" />
-            </DataGrid.Columns>
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="SelectionChanged">
+                    <cmd:EventToCommand
+                        Command="{Binding SelectionChangedCommand}"
+                        CommandParameter="{Binding SelectedItems, RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}"/>
+                </i:EventTrigger>
+            </i:Interaction.Triggers>            
         </DataGrid>
+        <StackPanel
+            DockPanel.Dock="Top"
+            DataContext="{Binding Characters, Source={StaticResource Locator}}" >
+            <Button
+                Content="Dodaj"
+                Command="{Binding AddItemCommand}" />
+            <Button
+                Content="Usuń"
+                Command="{Binding RemoveItemsCommand}" />
+            <Button
+                Content="Kopiuj"
+                Command="{Binding CopyItemsCommand}" />
+            <Button
+                Content="Wytnij"
+                Command="{Binding CutItemsCommand}" />
+            <Button
+                Content="Wklej"
+                Command="{Binding PasteItemsCommand}" />
+            <Button
+                Content="Duplikuj"
+                Command="{Binding DuplicateItemsCommand}" />
+            <TextBox
+                Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
     </DockPanel>
 </Controls:MetroWindow>
