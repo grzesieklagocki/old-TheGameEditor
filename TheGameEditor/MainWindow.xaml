@@ -80,9 +80,8 @@
         </StackPanel>
         <DataGrid
             DataContext="{Binding Characters, Source={StaticResource Locator}}"
-            CanUserAddRows="True"
-            CanUserDeleteRows="True"
             AutoGenerateColumns="True"
+            CanUserAddRows="False"
             ItemsSource="{Binding Items}"
             SelectedItem="{Binding SelectedItem}" >
             <i:Interaction.Triggers>
@@ -116,6 +115,13 @@
                 Command="{Binding DuplicateItemsCommand}" />
             <TextBox
                 Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" />
+            <Button
+                Content="cofnij"
+                Command="{Binding UndoCommand}" />
+            <Button
+                Content="do przodu"
+                Command="{Binding RedoCommand}" />
         </StackPanel>
+
     </DockPanel>
 </Controls:MetroWindow>

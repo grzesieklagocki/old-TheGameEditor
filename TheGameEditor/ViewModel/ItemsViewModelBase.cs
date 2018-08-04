@@ -8,10 +8,10 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Windows;
 using System.Xml.Serialization;
 using TheGameEditor.Model;
+using TheGameEditor.UndoRedo;
 
 namespace TheGameEditor.ViewModel
 {
@@ -31,6 +31,10 @@ namespace TheGameEditor.ViewModel
                     return items;
                 }
             }
+            private set
+            {
+                items = value;
+            }
         }
         public TItem SelectedItem { get; set; }
 
@@ -38,15 +42,21 @@ namespace TheGameEditor.ViewModel
 
         public string Filter { get; set; }
 
-        public RelayCommand AddItemCommand => addItemCommand ?? (addItemCommand = new RelayCommand(AddItem));
-        public RelayCommand RemoveItemsCommand => removeItemsCommand ?? (removeItemsCommand = new RelayCommand(RemoveItems));
-        public RelayCommand CopyItemsCommand => copyItemsCommand ?? (copyItemsCommand = new RelayCommand(CopyItems));
-        public RelayCommand CutItemsCommand => cutItemsCommand ?? (cutItemsCommand = new RelayCommand(CutItems));
+        #region Commands
+
+
+        public RelayCommand UndoCommand => undoCommand ?? (undoCommand = new RelayCommand(undoManager.Undo, () => undoManager.CanUndo));
+        public RelayCommand RedoCommand => redoCommand ?? (redoCommand = new RelayCommand(undoManager.Redo, () => undoManager.CanRedo));
+        public RelayCommand AddItemCommand => addItemCommand ?? (addItemCommand = new RelayCommand(AddItemReported));
+        public RelayCommand RemoveItemsCommand => removeItemsCommand ?? (removeItemsCommand = new RelayCommand(RemoveItemsReported, () => selectedItems?.Count > 0));
+        public RelayCommand CopyItemsCommand => copyItemsCommand ?? (copyItemsCommand = new RelayCommand(CopyItems, () => selectedItems?.Count > 0));
+        public RelayCommand CutItemsCommand => cutItemsCommand ?? (cutItemsCommand = new RelayCommand(CutItems, () => selectedItems?.Count > 0));
         public RelayCommand PasteItemsCommand => pasteItemsCommand ?? (pasteItemsCommand = new RelayCommand(PasteItems));
-        public RelayCommand DuplicateItemsCommand => duplicateItemsCommand ?? (duplicateItemsCommand = new RelayCommand(DuplicateItems));
+        public RelayCommand DuplicateItemsCommand => duplicateItemsCommand ?? (duplicateItemsCommand = new RelayCommand(DuplicateItems, () => selectedItems?.Count > 0));
         public RelayCommand<ICollection> SelectionChangedCommand => selectionChangedCommand ?? (selectionChangedCommand = new RelayCommand<ICollection>(i => SelectionChangedAction(i)));
-
-
+        
+        private RelayCommand undoCommand;
+        private RelayCommand redoCommand;
         private RelayCommand addItemCommand;
         private RelayCommand removeItemsCommand;
         private RelayCommand copyItemsCommand;
@@ -55,42 +65,45 @@ namespace TheGameEditor.ViewModel
         private RelayCommand duplicateItemsCommand;
         private RelayCommand<ICollection> selectionChangedCommand;
 
-        private List<TItem> selectedItems;
+        #endregion
+
         private TItem defaultItem;
         private ObservableCollection<TItem> items;
+        private List<TItem> selectedItems;
+
+        private UndoManager undoManager = new UndoManager(50);
 
 
         /// <summary>
         /// Konstruktor
         /// </summary>
-        /// <param name="items"></param>
         /// <param name="defaultItem"></param>
-        public ItemsViewModelBase(ICollection<TItem> items, TItem defaultItem)
+        public ItemsViewModelBase(TItem defaultItem)
         {
-            if (items == null)
-            {
-                throw new ArgumentNullException(nameof(items));
-            }
-
             this.defaultItem = defaultItem ?? throw new ArgumentNullException(nameof(defaultItem));
-            this.items = new ObservableCollection<TItem>(items);
+            items = new ObservableCollection<TItem>();
         }
 
 
         public void SetItems(ICollection<TItem> items)
         {
-            this.items = new ObservableCollection<TItem>(items);
+            Items = new ObservableCollection<TItem>(items);
         }
 
+        #region Command Actions
 
-        private void AddItem()
-        {
-            AddItem((TItem)defaultItem.GetCopy());
-        }
+        #region Add
 
         private void AddItem(TItem item)
         {
             items.Add(item);
+        }
+
+        private void AddItemReported()
+        {
+            var item = GetCopy(defaultItem);
+            AddItem(item);
+            undoManager.ReportCommand(() => AddItem(item), () => RemoveItem(item));
         }
 
         private void AddItems(List<TItem> items)
@@ -101,35 +114,57 @@ namespace TheGameEditor.ViewModel
             }
         }
 
+        private void AddItemsReported(List<TItem> items)
+        {
+            AddItems(items);
+
+            undoManager.ReportCommand(() => AddItems(items), () => RemoveItems(items));
+        }
+
+        #endregion
+
+        #region Remove
+
         private void RemoveItem(TItem item)
         {
             items.Remove(item);
         }
 
-        private void RemoveItems()
+        private void RemoveItems(List<TItem> items)
         {
-            foreach (var item in selectedItems)
+            foreach (var item in items)
             {
                 RemoveItem(item);
             }
         }
 
+        private void RemoveItemsReported()
+        {
+            var items = selectedItems;
+            RemoveItems(items);
+
+            undoManager.ReportCommand(() => RemoveItems(items), () => AddItems(items));
+        }
+
+        #endregion
+
+        #region Copy / Cut / Paste / Duplicate
+
+
         private void CopyItems()
         {
-            string xml = SerializeToString(selectedItems);
             var data = new DataObject();
 
-            data.SetData($"{typeof(TItem).Name}List", xml);
-            data.SetData(DataFormats.UnicodeText, SerializeToExcel(selectedItems));
-            //data.SetData(DataFormats.CommaSeparatedValue, xml);
+            data.SetData($"{typeof(TItem).Name}List", SerializeToStringXml(selectedItems));
+            data.SetData(DataFormats.UnicodeText, SerializeToStringExcel(selectedItems));
 
-            Clipboard.SetDataObject(data, false);
+            Clipboard.SetDataObject(data, true);
         }
 
         private void CutItems()
         {
             CopyItems();
-            RemoveItems();
+            RemoveItemsReported();
         }
 
         private void PasteItems()
@@ -138,24 +173,31 @@ namespace TheGameEditor.ViewModel
 
             if (xml != string.Empty)
             {
-                AddItems(DeserializeFromString<List<TItem>>(xml));
+                AddItemsReported(DeserializeFromStringXml<List<TItem>>(xml));
             }
         }
 
         private void DuplicateItems()
         {
-            CopyItems();
-            PasteItems();
+            AddItemsReported(GetCopy(selectedItems));
         }
 
+        #endregion
+
+        #region Selection Changed
+        
         private void SelectionChangedAction(ICollection items)
         {
             selectedItems = items.Cast<TItem>().ToList();
         }
+
+        #endregion
+
+        #endregion
         
         #region Serialization
         
-        private string SerializeToString<T>(T obj)
+        private string SerializeToStringXml<T>(T obj)
         {
             var serializer = new XmlSerializer(typeof(T));
             string xml;
@@ -169,7 +211,7 @@ namespace TheGameEditor.ViewModel
             return xml;
         }
 
-        private T DeserializeFromString<T>(string xml)
+        private T DeserializeFromStringXml<T>(string xml)
         {
             var serializer = new XmlSerializer(typeof(T));
             T obj;
@@ -182,9 +224,7 @@ namespace TheGameEditor.ViewModel
             return (T)obj;
         }
 
-        #endregion
-
-        private string SerializeToExcel<T>(ICollection<T> collection)
+        private string SerializeToStringExcel<T>(ICollection<T> collection)
         {
             PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(T));
             string text = string.Empty;
@@ -203,6 +243,14 @@ namespace TheGameEditor.ViewModel
             }
 
             return text;
+        }
+
+        #endregion
+
+        
+        private T GetCopy<T>(T obj)
+        {
+            return DeserializeFromStringXml<T>(SerializeToStringXml<T>(obj));
         }
     }
 }

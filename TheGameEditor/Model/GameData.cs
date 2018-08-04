@@ -17,14 +17,5 @@ namespace TheGameEditor.Model
             Name = string.Empty;
             Description = string.Empty;
         }
-
-        public virtual GameData GetCopy()
-        {
-            return new GameData()
-            {
-                Name = Name,
-                Description = Description
-            };
-        }
     }
 }

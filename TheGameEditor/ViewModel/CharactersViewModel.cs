@@ -11,7 +11,7 @@ namespace TheGameEditor.ViewModel
     [AddINotifyPropertyChangedInterface]
     public class CharactersViewModel : ItemsViewModelBase<GameData>
     {
-        public CharactersViewModel() : base(new List<GameData>(), new GameData() { Name = "Default GameData" })
+        public CharactersViewModel() : base(new GameData() { Name = "Default GameData" })
         {
             
         }
