@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -115,7 +116,14 @@ namespace TheGameEditor.ViewModel
 
         private void CopyItems()
         {
-            Clipboard.SetData($"{typeof(TItem).Name}List", SerializeToString(selectedItems));
+            string xml = SerializeToString(selectedItems);
+            var data = new DataObject();
+
+            data.SetData($"{typeof(TItem).Name}List", xml);
+            data.SetData(DataFormats.UnicodeText, SerializeToExcel(selectedItems));
+            //data.SetData(DataFormats.CommaSeparatedValue, xml);
+
+            Clipboard.SetDataObject(data, false);
         }
 
         private void CutItems()
@@ -126,9 +134,12 @@ namespace TheGameEditor.ViewModel
 
         private void PasteItems()
         {
-            string xml = Clipboard.GetData($"{typeof(TItem).Name}List").ToString();
+            string xml = Clipboard.GetData($"{typeof(TItem).Name}List")?.ToString() ?? string.Empty;
 
-            AddItems(DeserializeFromString<List<TItem>>(xml));
+            if (xml != string.Empty)
+            {
+                AddItems(DeserializeFromString<List<TItem>>(xml));
+            }
         }
 
         private void DuplicateItems()
@@ -172,5 +183,26 @@ namespace TheGameEditor.ViewModel
         }
 
         #endregion
+
+        private string SerializeToExcel<T>(ICollection<T> collection)
+        {
+            PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(T));
+            string text = string.Empty;
+
+            foreach (var item in collection)
+            {
+                foreach (PropertyDescriptor property in properties)
+                {
+                    if (property.PropertyType.IsPublic)
+                    {
+                        text += (property.GetValue(item).ToString() ?? string.Empty) + '\t';
+                    }
+                }
+
+                text += Environment.NewLine;
+            }
+
+            return text;
+        }
     }
 }
